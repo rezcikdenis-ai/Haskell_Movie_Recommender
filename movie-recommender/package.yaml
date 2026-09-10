@@ -44,6 +44,8 @@ library:
     - Types
     - CSVLoader
     - Preprocessing
+    - TFIDFVectorizer
+    - ModelEvaluation
 
 executables:
   movie-recommender-exe:

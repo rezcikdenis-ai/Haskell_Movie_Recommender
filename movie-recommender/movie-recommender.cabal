@@ -28,6 +28,8 @@ library
       Types
       CSVLoader
       Preprocessing
+      TFIDFVectorizer
+      ModelEvaluation
   other-modules:
       Lib
       Paths_movie_recommender
