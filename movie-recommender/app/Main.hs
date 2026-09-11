@@ -3,36 +3,47 @@
 module Main where
 
 import qualified Data.Vector as V
-import CSVLoader (loadMoviesFromFile)
+import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
+
+import CSVLoader (loadMoviesFromFile) 
 import Preprocessing (preprocessMovie)
 import TFIDFVectorizer (buildTFIDFModel)
 import ModelEvaluation (evaluateModel, EvaluationMetrics(..))
+import ModelPersistence (saveModel, loadModel)
+import UI (runUI)
 import Types
 
 main :: IO ()
 main = do
-    putStrLn "Movie Recommender (проверка 4 этапа)"
-    result <- loadMoviesFromFile "movies.csv"
-    case result of
-          Left err -> putStrLn $ "Ошибка: " ++ err
-          Right moviesV -> do
-            let movies = V.toList moviesV
-                processed = map preprocessMovie movies
+    putStrLn "Movie Recommender"
 
-            putStrLn $ "Загружено фильмов: " ++ show (length processed)
+    let modelDir = "model_cache"
+        csvPath  = "movies.csv"
 
-            let model = buildTFIDFModel processed
-                metrics = evaluateModel processed model
+    moviesResult <- loadMoviesFromFile csvPath
 
-            putStrLn "\nМетрики модели"
-            putStrLn $ "Размер словаря:           " ++ show (vocabularySize metrics)
-            putStrLn $ "Покрытие датасета:        " ++ show (coverage metrics * 100) ++ "%"
-            putStrLn $ "Средняя разреженность:    " ++ show (avgSparsity metrics)
-            putStrLn $ "Среднее сходство в жанре: " ++ show (avgIntraGenreSimilarity metrics)
-            putStrLn "\nОтладка genres"
-            mapM_ printGenreDebug (take 5 processed)
-            where
-                printGenreDebug m = do
-                    putStrLn $ "Title: " ++ show (pOriginalTitle m)
-                    putStrLn $ "Genres: " ++ show (pGenres m)
-                    putStrLn $ "Keywords (первые 5): " ++ show (take 5 $ pKeywords m)
+    case moviesResult of
+        Left err -> putStrLn $ "Ошибка загрузки CSV: " ++ err
+        Right moviesV -> do
+          let movies    = V.toList moviesV
+              processed = map preprocessMovie movies
+
+          cacheExists <- doesDirectoryExist modelDir
+          modelResult <- if cacheExists
+                        then loadModel modelDir
+                        else pure $ Left "no cache"
+
+          model <- case modelResult of
+              Right m -> do
+                putStrLn "Модель загружена из кеша"
+                pure m
+              Left _ -> do
+                  putStrLn "Строим модель..."
+                  let newModel = buildTFIDFModel processed
+                  createDirectoryIfMissing True modelDir
+                  saveModel modelDir newModel
+                  let metrics = evaluateModel processed newModel
+                  putStrLn $ "Словарь: " ++ show (vocabularySize metrics)
+                        ++ " | Сходство в жанре: " ++ show (avgIntraGenreSimilarity metrics)
+                  pure newModel 
+          runUI model processed

@@ -26,6 +26,7 @@ dependencies:
 - bytestring
 - vector
 - containers
+- directory
 
 ghc-options:
 - -Wall
@@ -46,6 +47,9 @@ library:
     - Preprocessing
     - TFIDFVectorizer
     - ModelEvaluation
+    - Recommender
+    - ModelPersistence
+    - UI
 
 executables:
   movie-recommender-exe:
