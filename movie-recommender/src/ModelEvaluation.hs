@@ -1,9 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module ModelEvaluation
-  ( evaluateModel
-  , EvaluationMetrics(..)
-  ) where
+module ModelEvaluation(evaluateModel, EvaluationMetrics(..)) where
 
 import qualified Data.Map.Strict as Map
 import Data.List (foldl')
@@ -22,7 +19,8 @@ evaluateModel movies model =
     let
         vecs = vectors model
         nMovies = length movies
-        nWithVectors = Map.size vecs
+        relevantVecs = [v | m <- movies, Just v <- [Map.lookup (pMovieId m) vecs]]
+        nWithVectors = length relevantVecs
 
         cov = if nMovies == 0 then 0 else fromIntegral nWithVectors / fromIntegral nMovies
 

@@ -85,7 +85,7 @@ decodeSparse txt =
         let val = T.drop 1 rest
         ]
 
--- | Загрузка модели
+-- загрузка модели
 loadModel :: FilePath -> IO (Either String TFIDFModel)
 loadModel dir = do
     vocabExists <- doesFileExist (dir ++ "/vocabulary.csv")

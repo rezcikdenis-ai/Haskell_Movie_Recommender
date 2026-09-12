@@ -27,6 +27,8 @@ dependencies:
 - vector
 - containers
 - directory
+- time
+- random
 
 ghc-options:
 - -Wall
@@ -50,6 +52,7 @@ library:
     - Recommender
     - ModelPersistence
     - UI
+    - Logger
 
 executables:
   movie-recommender-exe:
@@ -72,3 +75,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - movie-recommender
+    - QuickCheck
+    - quickcheck-instances

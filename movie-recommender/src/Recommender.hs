@@ -7,14 +7,14 @@ import Data.Text (Text)
 import Types (ProcessedMovie(..), SparseVector, TFIDFModel(..))
 import TFIDFVectorizer (cosineSimilarity)
 
--- | Одна рекомендация
+-- одна рекомендация
 data Recommendation = Recommendation
-  {recMovieId    :: Int,
-   recTitle      :: Text,
-   recScore      :: Double
-  } deriving (Show)
+    {recMovieId :: Int,
+    recTitle :: Text,
+    recScore :: Double
+    } deriving (Show)
 
--- | получение топа рекомендаций по списку фильмов
+-- получение топа рекомендаций по списку фильмов
 recommend :: TFIDFModel -> [ProcessedMovie] -> [Int] -> Int -> [Recommendation]
 recommend model allMovies selectedIds topN
     | null selectedIds = []
@@ -37,7 +37,7 @@ recommend model allMovies selectedIds topN
                 ]
         in recommendations
 
--- | Усреднение sparse-векторов
+-- усреднение sparse-векторов
 averageVectors :: [SparseVector] -> SparseVector
 averageVectors [] = Map.empty
 averageVectors vs =

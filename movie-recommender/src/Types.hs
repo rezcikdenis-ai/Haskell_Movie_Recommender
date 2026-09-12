@@ -9,7 +9,7 @@ import Data.Csv (FromNamedRecord(..), (.:))
 import qualified Data.Map as Map
 import Control.Applicative ((<|>))
 
--- | Основная запись о фильме (только нужные нам поля)
+-- основная запись о фильме
 data Movie = Movie
     {movieId :: Int,
      originalTitle :: Text,
@@ -31,12 +31,12 @@ instance FromNamedRecord Movie where
 
 -- фильм после предобработки
 data ProcessedMovie = ProcessedMovie
-    {pMovieId       :: Int,
+    {pMovieId :: Int,
      pOriginalTitle :: Text,
-     pTokens        :: [Text],
-     pGenres        :: [Text],
-     pKeywords      :: [Text],
-     pPopularity    :: Double
+     pTokens :: [Text],
+     pGenres :: [Text],
+     pKeywords :: [Text],
+     pPopularity :: Double
     } deriving (Show, Eq)
 
 type SparseVector = Map.Map Int Double

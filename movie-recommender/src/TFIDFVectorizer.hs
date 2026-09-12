@@ -1,52 +1,84 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module TFIDFVectorizer
-  ( buildTFIDFModel
-  , cosineSimilarity
-  ) where
+    (buildTFIDFModelFromSplit, splitDataset, cosineSimilarity, DatasetSplit(..)) where
 
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.Text as T
-import Data.List (foldl')
+import Data.List (foldl', sortOn)
 import Types (ProcessedMovie(..), SparseVector, TFIDFModel(..))
+import System.Random (mkStdGen, randomRs)
+
+-- бьём датасет
+data DatasetSplit = DatasetSplit
+    {trainSet :: [ProcessedMovie],
+    valSet :: [ProcessedMovie],
+    testSet :: [ProcessedMovie]
+    } deriving (Show)
+
+
+splitDataset :: [ProcessedMovie] -> DatasetSplit
+splitDataset movies =
+    let
+        n      = length movies
+        nTrain = round (0.70 * fromIntegral n :: Double)
+        nVal   = round (0.15 * fromIntegral n :: Double)
+
+        -- Простое детерминированное «перемешивание» по остатку от деления id
+        sorted = sortOn (\m -> pMovieId m `mod` 97) movies
+
+        train = take nTrain sorted
+        rest  = drop nTrain sorted
+        val   = take nVal rest
+        test  = drop nVal rest
+    in DatasetSplit
+        { trainSet = train
+        , valSet   = val
+        , testSet  = test
+        }
 
 -- построение TF-IDF модели из списка предобработанных фильмов
+buildTFIDFModelFromSplit :: DatasetSplit -> TFIDFModel
+buildTFIDFModelFromSplit split =
+    let
+        train = trainSet split
+        --словарь из train
+        allTokens = concatMap pTokens train
+        uniqueTokens = Set.toList $ Set.fromList allTokens
+        vocab = Map.fromList $ zip uniqueTokens [0..]
+
+        -- считаем DF
+        docFreq = foldl' updateDocFreq Map.empty train
+            where
+                updateDocFreq acc m =
+                    let uniqueInDoc = Set.fromList (pTokens m)
+                    in foldl' (\a t -> Map.insertWith (+) t 1 a) acc uniqueInDoc
+
+                nDocs = fromIntegral (length train) :: Double
+
+        -- считаем IDF
+        idfMap = Map.fromList
+            [ (idx, log (nDocs / (1 + fromIntegral df)))  -- сглаживание +1
+            | (term, idx) <- Map.toList vocab
+            , let df = Map.findWithDefault 0 term docFreq
+            ]
+
+        -- строим TF-IDF векторы
+        allMovies = train ++ valSet split ++ testSet split
+        vectorsMap = Map.fromList
+            [(pMovieId m, computeTFIDF (pTokens m) vocab idfMap) | m <- allMovies]
+
+    in TFIDFModel
+        {vocabulary = vocab, 
+            idf = idfMap,
+            vectors = vectorsMap
+        }
+--оставил часть старого интерфейса просто для совместимости
 buildTFIDFModel :: [ProcessedMovie] -> TFIDFModel
 buildTFIDFModel movies =
-  let
-    -- собираем все уникальные токены в словарь
-    allTokens = concatMap pTokens movies
-    uniqueTokens = Set.toList $ Set.fromList allTokens
-    vocab = Map.fromList $ zip uniqueTokens [0..]
-
-    -- считаем DF
-    docFreq = foldl' updateDocFreq Map.empty movies
-      where
-        updateDocFreq acc m =
-          let uniqueInDoc = Set.fromList (pTokens m)
-          in foldl' (\a t -> Map.insertWith (+) t 1 a) acc uniqueInDoc
-
-    nDocs = fromIntegral (length movies) :: Double
-
-    -- считаем IDF
-    idfMap = Map.fromList
-        [ (idx, log (nDocs / (1 + fromIntegral df)))  -- сглаживание +1
-        | (term, idx) <- Map.toList vocab
-        , let df = Map.findWithDefault 0 term docFreq
-        ]
-
-    -- строим TF-IDF векторы
-    vectorsMap = Map.fromList
-        [ (pMovieId m, computeTFIDF (pTokens m) vocab idfMap)
-        | m <- movies
-        ]
-
-  in TFIDFModel
-       {vocabulary = vocab,
-        idf        = idfMap,
-        vectors    = vectorsMap
-       }
+    let split = DatasetSplit movies [] []
+    in buildTFIDFModelFromSplit split
 
 -- вычисление TF-IDF вектора для одного документа
 computeTFIDF :: [T.Text] -> Map.Map T.Text Int -> Map.Map Int Double -> SparseVector

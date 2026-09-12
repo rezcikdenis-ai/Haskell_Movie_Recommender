@@ -33,8 +33,8 @@ library
       Recommender
       ModelPersistence
       UI
+      Logger
   other-modules:
-      Lib
       Paths_movie_recommender
   autogen-modules:
       Paths_movie_recommender
@@ -47,7 +47,9 @@ library
     , cassava
     , containers
     , directory
+    , random
     , text
+    , time
     , vector
   default-language: Haskell2010
 
@@ -67,7 +69,9 @@ executable movie-recommender-exe
     , containers
     , directory
     , movie-recommender
+    , random
     , text
+    , time
     , vector
   default-language: Haskell2010
 
@@ -82,12 +86,16 @@ test-suite movie-recommender-test
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
     , directory
     , movie-recommender
+    , quickcheck-instances
+    , random
     , text
+    , time
     , vector
   default-language: Haskell2010
