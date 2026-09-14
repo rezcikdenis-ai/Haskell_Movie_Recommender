@@ -7,8 +7,9 @@ import Data.List (find, isPrefixOf)
 import Data.Char (toLower, isSpace)
 import System.IO (hFlush, stdout)
 import Types (ProcessedMovie(..), TFIDFModel)
-import Recommender (recommend, Recommendation(..))
+import Recommender (recommend, Recommendation(..), recommendByText)
 import Logger (logInfo, logWarning, logError)
+import Preprocessing
 
 runUI :: TFIDFModel -> [ProcessedMovie] -> IO ()
 runUI model movies = do
@@ -22,7 +23,8 @@ menuLoop model movies = do
     putStrLn "  1. Ввести названия фильмов вручную"
     putStrLn "  2. Загрузить список фильмов из файла"
     putStrLn "  3. Найти фильм по названию (поиск)"
-    putStrLn "  4. Выход"
+    putStrLn "  4. Свободный ввод описания фильма"
+    putStrLn "  5. Выход"
     putStr "\nВаш выбор: "
     hFlush stdout
     choice <- getLine
@@ -48,6 +50,11 @@ menuLoop model movies = do
             menuLoop model movies
 
         "4" -> do
+            logInfo "Режим: свободный ввод описания фильма"
+            recommendFromFreeText model movies
+            menuLoop model movies
+
+        "5" -> do
             logInfo "Пользователь завершил работу"
             putStrLn "\nДо свидания!"
 
@@ -56,6 +63,37 @@ menuLoop model movies = do
             putStrLn "Неверный выбор. Попробуйте снова."
             menuLoop model movies
 
+
+recommendFromFreeText :: TFIDFModel -> [ProcessedMovie] -> IO ()
+recommendFromFreeText model movies = do
+    putStrLn "\nВведите описание интересующего фильма:"
+    putStr "> "
+    hFlush stdout
+    line <- getLine
+    logInfo $ "Свободный текстовый запрос: " ++ line
+
+    let tokens = preprocessText (T.pack line)
+
+    if null tokens
+        then do
+            logWarning "После предобработки не осталось токенов"
+            putStrLn "Не удалось выделить значимые слова из текста. Попробуйте ещё раз."
+        else do
+            logInfo $ "Токенов после предобработки: " ++ show (length tokens)
+            let recs = recommendByText model movies tokens 10
+            putStrLn "\nРекомендации"
+            if null recs
+                then do
+                    logWarning "Рекомендации по тексту не найдены"
+                    putStrLn "Рекомендации не найдены."
+                else do
+                    logInfo $ "Выдано рекомендаций по тексту: " ++ show (length recs)
+                    mapM_ printRec (zip [1..] recs)
+    where
+        printRec (i, r) =
+            putStrLn $ show i ++ ". "
+                    ++ T.unpack (recTitle r)
+                    ++ "  (" ++ show (round $ recScore r * 100) ++ "%)"
 inputMoviesManually :: [ProcessedMovie] -> IO [Int]
 inputMoviesManually movies = do
     putStrLn "\nВведите названия фильмов через запятую"
@@ -79,7 +117,7 @@ inputMoviesManually movies = do
         putStrLn $ "  [!] Фильм не найден: " ++ T.unpack title
     reportFound (title, Just mid) = do
         logInfo $ "Найден фильм: " ++ T.unpack title ++ " (id=" ++ show mid ++ ")"
-        putStrLn $ "  [+] Найден: " ++ T.unpack title ++ " (id=" ++ show mid ++ ")"
+        putStrLn $ "  [+] Найден: " ++ T.unpack title
 
 loadMoviesFromTextFile :: [ProcessedMovie] -> IO [Int]
 loadMoviesFromTextFile movies = do
@@ -125,7 +163,7 @@ searchMovie movies = do
         else do
             logInfo $ "Найдено результатов: " ++ show (length results)
             putStrLn "\nНайденные фильмы:"
-            mapM_ (\m -> putStrLn $ "  " ++ show (pMovieId m) ++ " | " ++ T.unpack (pOriginalTitle m)) results
+            mapM_ (\m -> putStrLn $  "| " ++ T.unpack (pOriginalTitle m)) results
   where
     contains s sub = any (isPrefixOf sub) (tails s)
     tails [] = []
@@ -148,12 +186,11 @@ showRecommendations model movies selectedIds =
                 else do
                     logInfo $ "Выдано рекомендаций: " ++ show (length recs)
                     mapM_ printRec (zip [1..] recs)
-  where
-    printRec (i, r) =
-        putStrLn $ show i ++ ". "
-                ++ T.unpack (recTitle r)
-                ++ "  (" ++ show (round $ recScore r * 100) ++ "%)"
-                ++ "  [id=" ++ show (recMovieId r) ++ "]"
+    where
+        printRec (i, r) =
+            putStrLn $ show i ++ ". "
+                    ++ T.unpack (recTitle r)
+                    ++ "  (" ++ show (round $ recScore r * 100) ++ "%)"
 
 findMovieByTitle :: [ProcessedMovie] -> T.Text -> Maybe Int
 findMovieByTitle movies title =

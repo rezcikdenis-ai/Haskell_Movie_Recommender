@@ -21,22 +21,16 @@ writeLog level message = do
     let line = "[" ++ ts ++ "] [" ++ level ++ "] " ++ message ++ "\n"
     appendFile logFile line
         `catch` \(e :: SomeException) ->
-        putStrLn $ "Не удалось записать в лог: " ++ show e
+            putStrLn $ "Не удалось записать в лог: " ++ show e
 
 -- информационное сообщение
 logInfo :: String -> IO ()
-logInfo msg = do
-    writeLog "INFO" msg
-    putStrLn $ "[INFO] " ++ msg
+logInfo msg = writeLog "INFO" msg
 
 logWarning :: String -> IO ()
-logWarning msg = do
-    writeLog "WARN" msg
-    putStrLn $ "[WARN] " ++ msg
+logWarning msg = writeLog "WARN" msg
 logError :: String -> IO ()
-logError msg = do
-    writeLog "ERROR" msg
-    putStrLn $ "[ERROR] " ++ msg
+logError msg = writeLog "ERROR" msg
 
 -- логируем начало и конец действи
 withLogging :: String -> IO a -> IO a

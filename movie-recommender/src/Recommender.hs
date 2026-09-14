@@ -3,14 +3,14 @@ module Recommender where
 import qualified Data.Map.Strict as Map
 import Data.List (sortOn)
 import Data.Ord (Down(..))
-import Data.Text (Text)
+import qualified Data.Text as T
 import Types (ProcessedMovie(..), SparseVector, TFIDFModel(..))
-import TFIDFVectorizer (cosineSimilarity)
+import TFIDFVectorizer (cosineSimilarity, vectorizeText)
 
 -- одна рекомендация
 data Recommendation = Recommendation
     {recMovieId :: Int,
-    recTitle :: Text,
+    recTitle :: T.Text,
     recScore :: Double
     } deriving (Show)
 
@@ -44,3 +44,14 @@ averageVectors vs =
     let n = fromIntegral (length vs) :: Double
         summed = foldl (Map.unionWith (+)) Map.empty vs
     in Map.map (/ n) summed
+
+--рекомендация на основе введённого текста
+recommendByText :: TFIDFModel -> [ProcessedMovie] -> [T.Text] -> Int -> [Recommendation]
+recommendByText model allMovies tokens topN =
+    let userVec = vectorizeText model tokens
+        vecs = vectors model
+        scored = [ (mid, cosineSimilarity userVec v) | (mid, v) <- Map.toList vecs]
+        sorted = sortOn (Down . snd) scored
+        titleMap = Map.fromList [(pMovieId m, pOriginalTitle m) | m <- allMovies]
+    in [ Recommendation mid (Map.findWithDefault "Unknown" mid titleMap) score
+       | (mid, score) <- take topN sorted]

@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module TFIDFVectorizer
-    (buildTFIDFModelFromSplit, splitDataset, cosineSimilarity, DatasetSplit(..)) where
+    (buildTFIDFModelFromSplit, splitDataset, cosineSimilarity, DatasetSplit(..), vectorizeText) where
 
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
@@ -55,7 +55,7 @@ buildTFIDFModelFromSplit split =
                     let uniqueInDoc = Set.fromList (pTokens m)
                     in foldl' (\a t -> Map.insertWith (+) t 1 a) acc uniqueInDoc
 
-                nDocs = fromIntegral (length train) :: Double
+        nDocs = fromIntegral (length train) :: Double
 
         -- считаем IDF
         idfMap = Map.fromList
@@ -107,3 +107,8 @@ cosineSimilarity v1 v2
         dot = sum [ Map.findWithDefault 0 k v1 * Map.findWithDefault 0 k v2 | k <- commonKeys ]
         norm1 = sqrt $ sum [ x * x | x <- Map.elems v1 ]
         norm2 = sqrt $ sum [ x * x | x <- Map.elems v2 ]
+
+--добавление возможности векторизации введённого вручную текста
+vectorizeText :: TFIDFModel -> [T.Text] -> SparseVector
+vectorizeText model tokens =
+    computeTFIDF tokens (vocabulary model) (idf model)
