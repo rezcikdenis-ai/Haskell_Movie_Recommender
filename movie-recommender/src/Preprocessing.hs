@@ -4,7 +4,7 @@ module Preprocessing(preprocessText, preprocessMovie, englishStopWords) where
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Char (isAlpha, isSpace, isAlphaNum)
+import Data.Char (isSpace, isAlphaNum)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Types (Movie(..), ProcessedMovie(..))

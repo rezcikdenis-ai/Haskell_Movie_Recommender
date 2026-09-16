@@ -8,7 +8,7 @@ import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.List (foldl', sortOn)
 import Types (ProcessedMovie(..), SparseVector, TFIDFModel(..))
-import System.Random (mkStdGen, randomRs)
+--import System.Random (mkStdGen, randomRs)
 
 -- бьём датасет
 data DatasetSplit = DatasetSplit
